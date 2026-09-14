@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -7,7 +7,7 @@ class IssueBase(BaseModel):
     """Base Pydantic schema containing shared fields for Issue entities."""
     title: str = Field(..., min_length=1, max_length=255, description="Short summary of the issue")
     description: Optional[str] = Field(None, description="Detailed technical issue description")
-    category: str = Field("bug", min_length=1, max_length=50, description="Category e.g. bug, feature, incident, task")
+    category: str = Field("bug", min_length=1, max_length=50, description="Category e.g. bug, feature, incident, task, tech_debt")
     priority: str = Field("medium", max_length=50, description="Priority e.g. low, medium, high, critical")
     status: str = Field("open", max_length=50, description="Status e.g. open, in_progress, resolved, closed")
     assigned_team: Optional[str] = Field(None, max_length=100, description="Assigned engineering team")
@@ -15,8 +15,8 @@ class IssueBase(BaseModel):
 
 class IssueCreate(IssueBase):
     """Schema for validating issue creation POST requests."""
-    category: Optional[str] = Field("bug", max_length=50)
-    priority: Optional[str] = Field("medium", max_length=50)
+    category: Optional[str] = Field(None, max_length=50)
+    priority: Optional[str] = Field(None, max_length=50)
     status: Optional[str] = Field("open", max_length=50)
 
 
@@ -47,8 +47,11 @@ class AIAnalysisRequest(BaseModel):
 
 class AIAnalysisResponse(BaseModel):
     """Schema for structured AI analysis results."""
-    category: str
-    priority: str
-    assigned_team: str
+    category: Literal["bug", "feature", "incident", "task", "tech_debt"]
+    priority: Literal["low", "medium", "high", "critical"]
+    assigned_team: Literal["backend", "frontend", "devops", "platform", "data"]
     keywords: List[str]
     suggested_action: str
+
+
+

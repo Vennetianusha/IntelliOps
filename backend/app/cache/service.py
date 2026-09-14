@@ -52,6 +52,37 @@ def set_cached_issue_detail(issue_id: int, data: Any, ttl: Optional[int] = None)
     redis_client.set(key, data, ttl=ttl)
 
 
+import hashlib
+
+
+def build_ai_triage_cache_key(title: str, description: Optional[str] = None) -> str:
+    """
+    Constructs deterministic Redis cache key for AI issue triage analysis.
+    Uses versioned namespace 'ai:triage:v3:<sha256>' to invalidate all legacy AI cache entries.
+    """
+    normalized = f"{(title or '').strip().lower()}:{(description or '').strip().lower()}"
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"ai:triage:v3:{digest}"
+
+
+def get_cached_ai_triage(title: str, description: Optional[str] = None) -> Optional[Any]:
+    """
+    Attempts to read cached AI triage analysis from Redis.
+    """
+    key = build_ai_triage_cache_key(title, description)
+    return redis_client.get(key)
+
+
+def set_cached_ai_triage(title: str, description: Optional[str], data: Any, ttl: Optional[int] = 300):
+    """
+    Caches AI triage analysis JSON data in Redis with default 300s TTL.
+    """
+    if not data or not isinstance(data, dict):
+        return
+    key = build_ai_triage_cache_key(title, description)
+    redis_client.set(key, data, ttl=ttl)
+
+
 def invalidate_issue_caches(issue_id: Optional[int] = None):
     """
     Invalidates issue caches on mutation (Create/Update/Delete).
@@ -65,3 +96,4 @@ def invalidate_issue_caches(issue_id: Optional[int] = None):
     if issue_id is not None:
         key = build_detail_cache_key(issue_id)
         redis_client.delete(key)
+

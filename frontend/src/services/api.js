@@ -77,3 +77,21 @@ export async function deleteIssue(id) {
   });
   return handleResponse(response);
 }
+
+/**
+ * Analyzes issue title and description using POST /api/v1/issues/analyze.
+ */
+export async function analyzeIssue(title, description) {
+  const response = await fetch(`${API_BASE_URL}/issues/analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title, description }),
+  });
+  return handleResponse(response);
+}
+
+
+
+

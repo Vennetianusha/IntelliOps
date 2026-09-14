@@ -59,8 +59,8 @@ def create_issue(
         # Run AI analysis to enrich category, priority, and assigned_team if omitted or default
         ai_data = analyze_issue(issue_in.title, issue_in.description)
 
-        category = issue_in.category if issue_in.category and issue_in.category != "bug" else ai_data["category"]
-        priority = issue_in.priority if issue_in.priority and issue_in.priority != "medium" else ai_data["priority"]
+        category = issue_in.category if issue_in.category else ai_data["category"]
+        priority = issue_in.priority if issue_in.priority else ai_data["priority"]
         assigned_team = issue_in.assigned_team if issue_in.assigned_team else ai_data["assigned_team"]
 
         issue = Issue(

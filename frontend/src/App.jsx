@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
+import LandingPage from './components/LandingPage';
 import StatsOverview from './components/StatsOverview';
+import AiInsightsSection from './components/AiInsightsSection';
 import IssueFilters from './components/IssueFilters';
 import IssueTable from './components/IssueTable';
 import CreateIssueModal from './components/CreateIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
 import { fetchIssues, deleteIssue } from './services/api';
-
 
 export default function App() {
   const [issues, setIssues] = useState([]);
@@ -14,8 +15,8 @@ export default function App() {
   const [error, setError] = useState(null);
   const [apiOnline, setApiOnline] = useState(false);
 
-  // Tabs & Modal state
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Default view is 'landing' as required by prompt
+  const [activeTab, setActiveTab] = useState('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
 
@@ -29,7 +30,6 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      // Health check endpoint
       const healthRes = await fetch('/api/v1/health').catch(() => null);
       if (healthRes && healthRes.ok) {
         setApiOnline(true);
@@ -63,7 +63,8 @@ export default function App() {
     const titleMatch = issue.title?.toLowerCase().includes(query);
     const descMatch = issue.description?.toLowerCase().includes(query);
     const teamMatch = issue.assigned_team?.toLowerCase().includes(query);
-    return titleMatch || descMatch || teamMatch;
+    const categoryMatch = issue.category?.toLowerCase().includes(query);
+    return titleMatch || descMatch || teamMatch || categoryMatch;
   });
 
   return (
@@ -75,51 +76,72 @@ export default function App() {
         apiOnline={apiOnline}
       />
 
-      <main className="container">
-        {activeTab === 'dashboard' && (
-          <section className="section-dashboard">
-            <h2 style={{ marginBottom: '1rem' }}>Operations Overview</h2>
-            <StatsOverview issues={issues} />
-          </section>
-        )}
+      {activeTab === 'landing' ? (
+        <LandingPage onOpenDashboard={() => setActiveTab('dashboard')} />
+      ) : (
+        <main className="container">
+          {activeTab === 'dashboard' && (
+            <>
+              <section className="section-dashboard">
+                <div className="section-header-flex">
+                  <div>
+                    <h2>Operations Overview</h2>
+                    <p className="section-subtext">Real-time status from PostgreSQL & Redis cache</p>
+                  </div>
+                  <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>
+                    <span>+</span> Create Issue
+                  </button>
+                </div>
+                <StatsOverview issues={issues} />
+              </section>
 
-        <section className="section-issues">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Engineering Issues</h2>
-            <button className="btn btn-secondary btn-sm" onClick={loadIssues}>
-              🔄 Refresh List
-            </button>
-          </div>
+              <AiInsightsSection
+                issues={issues}
+                onSelectIssue={(issue) => setSelectedIssue(issue)}
+              />
+            </>
+          )}
 
-          <IssueFilters
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            priorityFilter={priorityFilter}
-            setPriorityFilter={setPriorityFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onReset={handleResetFilters}
-          />
+          <section className="section-issues">
+            <div className="section-header-flex" style={{ marginBottom: '1rem' }}>
+              <div>
+                <h2>Engineering Issues</h2>
+                <p className="section-subtext">Manage, filter, and triage active tickets</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={loadIssues}>
+                🔄 Refresh List
+              </button>
+            </div>
 
-          <IssueTable
-            issues={filteredIssues}
-            loading={loading}
-            error={error}
-            onSelectIssue={(issue) => setSelectedIssue(issue)}
-            onDeleteIssue={async (id) => {
-              if (window.confirm(`Delete issue #${id}?`)) {
-                try {
-                  await deleteIssue(id);
-                  loadIssues();
-                } catch (err) {
-                  alert(`Failed to delete issue: ${err.message}`);
+            <IssueFilters
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              priorityFilter={priorityFilter}
+              setPriorityFilter={setPriorityFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onReset={handleResetFilters}
+            />
+
+            <IssueTable
+              issues={filteredIssues}
+              loading={loading}
+              error={error}
+              onSelectIssue={(issue) => setSelectedIssue(issue)}
+              onDeleteIssue={async (id) => {
+                if (window.confirm(`Delete issue #${id}?`)) {
+                  try {
+                    await deleteIssue(id);
+                    loadIssues();
+                  } catch (err) {
+                    alert(`Failed to delete issue: ${err.message}`);
+                  }
                 }
-              }
-            }}
-
-          />
-        </section>
-      </main>
+              }}
+            />
+          </section>
+        </main>
+      )}
 
       <CreateIssueModal
         isOpen={isCreateModalOpen}
